@@ -192,14 +192,24 @@ private:
         // Generate random points in a cube
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<double> dist(-5.0, 5.0);
+        std::uniform_real_distribution<double> dist(-3.0, 3.0);
         
-        const size_t num_points = 20;
+        const size_t num_points = 8; // Smaller number for better visualization
         for (size_t i = 0; i < num_points; ++i) {
             test_points_.emplace_back(dist(gen), dist(gen), dist(gen));
         }
         
         std::cout << "Generated " << test_points_.size() << " test points" << std::endl;
+        
+        // Compute Voronoi diagram
+        try {
+            voronoi_diagram_->compute(test_points_);
+            std::cout << "Voronoi diagram computed successfully!" << std::endl;
+            std::cout << voronoi_diagram_->getStatistics() << std::endl;
+        } catch (const std::exception& e) {
+            std::cout << "Failed to compute Voronoi diagram: " << e.what() << std::endl;
+            std::cout << "Continuing with point visualization only." << std::endl;
+        }
         
         // Update VBO with new data
         updatePointBuffer();

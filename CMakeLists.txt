@@ -109,7 +109,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Testing (optional)
-option(BUILD_TESTS "Build test suite" OFF)
+option(BUILD_TESTS "Build test suite" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

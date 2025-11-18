@@ -105,6 +105,12 @@ public:
         return !(*this == other);
     }
 
+    bool operator<(const Point3D& other) const {
+        if (std::abs(x - other.x) > EPSILON) return x < other.x;
+        if (std::abs(y - other.y) > EPSILON) return y < other.y;
+        return z < other.z;
+    }
+
     /**
      * @brief Calculate squared distance to another point
      * @param other The other point

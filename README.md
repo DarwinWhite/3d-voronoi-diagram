@@ -1,54 +1,104 @@
-# 3D Voronoi Diagram Construction and Visualization
-
-A comprehensive implementation of 3D Voronoi diagram algorithms with interactive OpenGL visualization.
+# 3D Voronoi Diagram Implementation
 
 ## Project Overview
 
-This project implements a robust 3D Voronoi diagram construction algorithm from scratch, focusing on both theoretical correctness and practical robustness challenges in three dimensions. The implementation includes:
+This project implements a complete 3D Voronoi diagram system with the following achievements:
 
-- **Delaunay Triangulation**: Incremental Bowyer-Watson algorithm for 3D tetrahedralization
-- **Voronoi Diagram Extraction**: Dual graph construction from Delaunay triangulation
-- **Interactive Visualization**: Real-time 3D rendering with OpenGL and GLFW
-- **Robust Geometry**: Careful handling of numerical precision and edge cases
+- **Core Algorithms**: Bowyer-Watson incremental Delaunay triangulation
+- **Dual Extraction**: Voronoi diagram construction from Delaunay dual
+- **Robust Predicates**: Numerically stable geometric computations
+- **Interactive Visualization**: Real-time 3D rendering with OpenGL
+- **Comprehensive Testing**: Unit test suite covering all major components
+- **Modern C++**: C++17 implementation with CMake build system
 
-## Features
+### Current Implementation Status
+**Phase 3 - Core Algorithm Implementation: COMPLETE**
+- Delaunay triangulation using Bowyer-Watson algorithm
+- Voronoi diagram extraction as dual graph
+- Geometric predicate library with robust computations
+- Interactive 3D visualization with camera controls
+- Comprehensive test suite with 4 test modules
+- Full CMake integration with test support
 
-### Core Algorithm
-- 3D Delaunay triangulation using Bowyer-Watson incremental insertion
-- Voronoi diagram extraction as the dual of Delaunay triangulation
-- Robust geometric predicates with numerical stability
-- Support for various point distributions (random, grid, spherical)
+## Key Features
 
-### Visualization
-- Interactive 3D rendering with OpenGL
-- Multiple viewing modes (points, wireframes, solid cells)
-- Real-time construction animation
-- Camera controls (orbit, pan, zoom)
-- Dynamic point insertion and removal
+### Algorithmic Components
+1. **3D Delaunay Triangulation**:
+   - Incremental Bowyer-Watson algorithm
+   - Robust circumsphere testing
+   - Cavity triangulation and tetrahedron management
+   - Handles degenerate cases and numerical precision
 
-### Testing & Evaluation
-- Comprehensive unit tests for geometric operations
-- Performance benchmarking tools
-- Correctness validation on known configurations
-- Support for stress testing with large datasets
+2. **Voronoi Diagram Construction**:
+   - Dual graph extraction from Delaunay triangulation
+   - Voronoi cell construction from circumcenters
+   - Site-to-cell mapping and neighbor relationships
+   - Spatial queries and geometric extent calculation
 
-## Project Structure
+3. **Geometric Predicates**:
+   - 3D orientation testing with determinant computation
+   - In-sphere predicate for Delaunay property validation
+   - Circumcenter calculation with numerical stability
+   - Adaptive precision for floating-point comparisons
 
+### Visualization Features
+1. **Interactive 3D Rendering**:
+   - OpenGL 3.3+ based visualization system
+   - Real-time point cloud display
+   - Camera system with orbit/pan/zoom controls
+   - Immediate mode rendering for development
+
+2. **User Interface**:
+   - Mouse-based camera manipulation
+   - Keyboard controls for point generation
+   - Console output of algorithm statistics
+   - Real-time computation and display
+
+## Installation & Building
+
+### Prerequisites
+```bash
+# Required dependencies
+sudo apt update
+sudo apt install -y build-essential cmake libgl1-mesa-dev libglfw3-dev libglew-dev
 ```
-csce620-project/
-├── src/                    # Source files
-│   ├── geometry/          # Geometric classes and algorithms
-│   ├── visualization/     # OpenGL rendering and UI
-│   ├── algorithms/        # Core Voronoi/Delaunay algorithms
-│   └── utils/             # Utility functions and helpers
-├── include/               # Header files
-├── shaders/              # GLSL shader files
-├── tests/                # Unit tests and benchmarks
-├── docs/                 # Documentation and reports
-├── external/             # Third-party dependencies
-├── CMakeLists.txt        # CMake build configuration
-└── README.md            # This file
+
+### Build Process
+**Current Implementation (Phase 3):**
+```bash
+# Clone repository
+git clone <repository-url>
+cd csce620-project
+
+# Create build directory
+mkdir build && cd build
+
+# Configure with CMake
+cmake ..
+
+# Build main application
+make
+
+# Build with tests enabled (optional)
+cmake -DBUILD_TESTS=ON ..
+make
+
+# Run application
+./voronoi3d
+
+# Run test suite (if built with tests)
+./tests/tests
 ```
+
+### Build Outputs
+- `voronoi3d` - Main interactive visualization application
+- `tests/tests` - Comprehensive unit test suite (if enabled)
+
+### System Requirements
+- **OS**: Linux (tested on Ubuntu/Debian)
+- **Compiler**: GCC 7+ or Clang 5+ (C++17 support required)
+- **Graphics**: OpenGL 3.3+ compatible graphics driver
+- **Memory**: Minimum 1GB RAM for typical point sets
 
 ## Dependencies
 
@@ -110,32 +160,43 @@ cmake -DBUILD_TESTS=ON ..
 ## Usage
 
 ### Basic Operation
+**Current Implementation:**
 ```bash
-# Run with default settings
+# Run the 3D Voronoi visualization
 ./voronoi3d
 
-# Generate random points
-./voronoi3d --points 100 --distribution random
+# Run comprehensive test suite
+./tests/tests
 
-# Load points from file
-./voronoi3d --input points.txt
-
-# Enable animation mode
-./voronoi3d --animate --speed 1.0
+# Enable tests during build
+cmake -DBUILD_TESTS=ON ..
+make && make test
 ```
 
+**Runtime Behavior:**
+- Generates random 3D point sets (8 points by default)
+- Computes Delaunay triangulation using Bowyer-Watson algorithm
+- Extracts Voronoi diagram as dual graph
+- Displays points with interactive 3D camera
+- Reports algorithm statistics to console
+- Supports real-time point regeneration with Space key
+
 ### Interactive Controls
+**Current Implementation (Phase 3):**
 - **Mouse**: 
-  - Left click + drag: Rotate camera
-  - Right click + drag: Pan view
-  - Scroll wheel: Zoom in/out
+  - Left click + drag: Orbit camera around target
+  - Right click + drag: Pan camera view
+  - Mouse wheel: Zoom in/out
 - **Keyboard**:
-  - `Space`: Toggle animation
-  - `R`: Reset camera view
-  - `1-3`: Switch rendering modes
-  - `P`: Add random point
-  - `C`: Clear all points
+  - `Space`: Generate new random point set and recompute Voronoi diagram
+  - `R`: Reset camera to default position
   - `ESC`: Exit application
+
+**Application Features:**
+- Real-time 3D point visualization
+- Automatic Voronoi diagram computation on point generation
+- Interactive camera system with orbit/pan/zoom controls
+- Console output of algorithm statistics and computation status
 
 ### Configuration Files
 Create `config.json` to customize default settings:
@@ -160,34 +221,111 @@ Create `config.json` to customize default settings:
 
 ## Algorithm Implementation
 
-### Delaunay Triangulation
-The implementation uses the Bowyer-Watson algorithm:
-1. Start with a large bounding tetrahedron
-2. Insert points incrementally
-3. For each point, find containing tetrahedron
-4. Remove conflicting tetrahedra
-5. Re-triangulate the cavity
+### Delaunay Triangulation (Bowyer-Watson Algorithm)
+**Fully Implemented in VoronoiStructures.cpp:**
 
-### Voronoi Diagram Construction
-Voronoi cells are extracted as the dual of the Delaunay triangulation:
-1. Each Delaunay vertex corresponds to a Voronoi cell
-2. Each Delaunay tetrahedron corresponds to a Voronoi vertex
-3. Voronoi edges connect circumcenters of adjacent tetrahedra
-4. Handle infinite cells at the convex hull boundary
+1. **Incremental Construction**: 
+   - `insertPointBowyerWatson()` - Core insertion algorithm
+   - `findConflictingTetrahedra()` - Robust circumsphere testing
+   - `retriangulateRemovedRegion()` - Cavity retriangulation
+
+2. **Geometric Robustness**:
+   - Proper orientation handling with `hasPositiveOrientation()`
+   - Circumsphere intersection using exact predicates
+   - Degenerate case handling and error recovery
+
+3. **Data Structure Management**:
+   - Efficient tetrahedron storage and neighbor tracking
+   - Active tetrahedron set maintenance
+   - Incremental point insertion with `addPoint()`
+
+### Voronoi Diagram Extraction
+**Dual Graph Construction:**
+
+1. **Cell Construction**:
+   - `extractVoronoiDiagram()` - Main dual extraction method
+   - `constructCell()` - Per-site cell building from incident tetrahedra
+   - Circumcenter collection as Voronoi vertices
+
+2. **Topological Consistency**:
+   - Site-to-cell mapping with proper indexing
+   - Adjacent tetrahedra discovery for each site
+   - Face and edge construction from dual relationships
+
+3. **Query Interface**:
+   - `findCell()` - Nearest cell location
+   - `getCellsInRegion()` - Spatial range queries
+   - `getBoundingBox()` - Geometric extent calculation
 
 ### Geometric Predicates
-Robust implementation of critical geometric tests:
-- **Orientation Test**: Determines relative position of points
-- **In-Sphere Test**: Checks if a point lies inside a tetrahedron's circumsphere
-- **Exact Arithmetic**: Uses adaptive precision for numerical stability
+**Numerically Robust Computations:**
+
+1. **Orientation Testing**:
+   - `orient3D()` - 3D point orientation with determinant calculation
+   - Coplanarity detection and degenerate case handling
+
+2. **In-Sphere Testing**:
+   - `inSphere()` - Critical Delaunay property validation
+   - Circumcenter calculation with `circumcenter()`
+   - Adaptive precision for numerical stability
+
+3. **Determinant Computation**:
+   - Optimized 3x3 and 4x4 matrix determinants
+   - Epsilon-based floating-point comparisons
 
 ## Testing
 
 ### Unit Tests
 ```bash
-# Build and run all tests
-cd build
-make test
+## Testing
+
+### Comprehensive Test Suite
+**Implemented in Phase 3:**
+
+```bash
+# Build with tests enabled
+cmake -DBUILD_TESTS=ON ..
+make
+
+# Run all tests
+./tests/tests
+
+# Expected output:
+# === 3D Voronoi Diagram Test Suite ===
+# [PASS] Point3D Tests
+# [PASS] Geometric Predicates Tests  
+# [PASS] Delaunay Triangulation Tests
+# [PASS] Voronoi Diagram Tests
+```
+
+**Test Coverage:**
+
+1. **Point3D Tests** (`test_point3d.cpp`):
+   - Arithmetic operations (+, -, *, /)
+   - Comparison operators (==, !=, <)
+   - Distance and magnitude calculations
+   - Vector operations (dot, cross, normalize)
+
+2. **Geometric Predicates Tests** (`test_geometric_predicates.cpp`):
+   - 3x3 matrix determinant computation
+   - 3D orientation testing
+   - In-sphere predicate validation
+   - Circumcenter calculation accuracy
+   - Coplanarity detection
+
+3. **Delaunay Triangulation Tests** (`test_delaunay_triangulation.cpp`):
+   - Tetrahedron basic functionality
+   - Circumsphere intersection testing
+   - Simple and incremental triangulation
+   - Random point set handling
+   - Delaunay property validation
+
+4. **Voronoi Diagram Tests** (`test_voronoi_diagram.cpp`):
+   - VoronoiCell construction and properties
+   - Diagram computation from point sets
+   - Spatial query operations
+   - Delaunay-Voronoi duality verification
+   - Incremental site addition
 
 # Run specific test categories
 ./tests/geometry_tests

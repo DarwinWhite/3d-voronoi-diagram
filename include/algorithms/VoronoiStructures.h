@@ -127,7 +127,7 @@ public:
 
     // Neighbor management
     void addNeighbor(ID cell_id);
-    const std::vector<ID>& getNeighbors() const { return neighboring_cells_; }
+    const std::vector<ID>& getNeighboringCells() const { return neighboring_cells_; }
 
     // Geometric tests
     bool containsPoint(const Point3D& point) const;
