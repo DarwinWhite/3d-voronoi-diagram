@@ -38,11 +38,13 @@ private:
     GLuint delaunay_vao_, delaunay_vbo_;  // For Delaunay edges
     size_t voronoi_edge_count_;  // Number of Voronoi edge vertices
     size_t delaunay_edge_count_;  // Number of Delaunay edge vertices
+    bool show_voronoi_;  // Toggle between Voronoi (true) and Delaunay (false)
     
 public:
     VoronoiApp() : mouse_pressed_(false), last_mouse_x_(0.0), last_mouse_y_(0.0),
                    shader_program_(0), vao_(0), vbo_(0), voronoi_vao_(0), voronoi_vbo_(0),
-                   delaunay_vao_(0), delaunay_vbo_(0), voronoi_edge_count_(0), delaunay_edge_count_(0) {
+                   delaunay_vao_(0), delaunay_vbo_(0), voronoi_edge_count_(0), delaunay_edge_count_(0),
+                   show_voronoi_(true) {
     }
     
     ~VoronoiApp() {
@@ -379,15 +381,12 @@ private:
         glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(test_points_.size()));
         glBindVertexArray(0);
         
-        // Draw Voronoi edges
-        if (voronoi_edge_count_ > 0) {
+        // Draw Voronoi or Delaunay edges based on toggle
+        if (show_voronoi_ && voronoi_edge_count_ > 0) {
             glBindVertexArray(voronoi_vao_);
             glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(voronoi_edge_count_));
             glBindVertexArray(0);
-        }
-        
-        // Draw Delaunay edges
-        if (delaunay_edge_count_ > 0) {
+        } else if (!show_voronoi_ && delaunay_edge_count_ > 0) {
             glBindVertexArray(delaunay_vao_);
             glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(delaunay_edge_count_));
             glBindVertexArray(0);
@@ -466,6 +465,10 @@ private:
                     break;
                 case GLFW_KEY_R:
                     camera_->reset();
+                    break;
+                case GLFW_KEY_V:
+                    show_voronoi_ = !show_voronoi_;
+                    std::cout << "Display mode: " << (show_voronoi_ ? "Voronoi" : "Delaunay") << std::endl;
                     break;
             }
         }
