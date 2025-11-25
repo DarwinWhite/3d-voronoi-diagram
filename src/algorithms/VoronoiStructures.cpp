@@ -374,10 +374,12 @@ void DelaunayTriangulation::createBoundingTetrahedron() {
         Point3D(0, 0, scale)
     };
     
+    // Create with correct orientation - swap vertices 2 and 3 for positive orientation
     auto bounding_tet = createTetrahedron(
         bounding_vertices_[0], bounding_vertices_[1], 
-        bounding_vertices_[2], bounding_vertices_[3]
+        bounding_vertices_[3], bounding_vertices_[2]
     );
+    
     active_tetrahedra_.insert(bounding_tet->getId());
 }
 
@@ -395,6 +397,7 @@ void DelaunayTriangulation::removeTetrahedron(TetrahedronID id) {
 
 void DelaunayTriangulation::removeBoundingTetrahedron() {
     // Remove tetrahedra that contain any bounding vertices
+    // Keep only tetrahedra formed entirely from actual data points
     std::vector<TetrahedronID> to_remove;
     
     for (const auto& tet : tetrahedra_) {
@@ -402,6 +405,7 @@ void DelaunayTriangulation::removeBoundingTetrahedron() {
             continue;
         }
         
+        // Check if this tetrahedron contains ANY bounding vertex
         bool contains_bounding = false;
         for (int i = 0; i < 4; ++i) {
             const Point3D& vertex = tet->getVertex(i);
@@ -414,11 +418,13 @@ void DelaunayTriangulation::removeBoundingTetrahedron() {
             if (contains_bounding) break;
         }
         
+        // Mark for removal only if it contains a bounding vertex
         if (contains_bounding) {
             to_remove.push_back(tet->getId());
         }
     }
     
+    // Remove the marked tetrahedra
     for (TetrahedronID id : to_remove) {
         removeTetrahedron(id);
     }

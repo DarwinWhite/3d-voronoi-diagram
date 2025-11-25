@@ -33,12 +33,16 @@ private:
     // Rendering state
     std::vector<Point3D> test_points_;
     GLuint shader_program_;
-    GLuint vao_;
-    GLuint vbo_;
+    GLuint vao_, vbo_;  // For points
+    GLuint voronoi_vao_, voronoi_vbo_;  // For Voronoi edges
+    GLuint delaunay_vao_, delaunay_vbo_;  // For Delaunay edges
+    size_t voronoi_edge_count_;  // Number of Voronoi edge vertices
+    size_t delaunay_edge_count_;  // Number of Delaunay edge vertices
     
 public:
     VoronoiApp() : mouse_pressed_(false), last_mouse_x_(0.0), last_mouse_y_(0.0),
-                   shader_program_(0), vao_(0), vbo_(0) {
+                   shader_program_(0), vao_(0), vbo_(0), voronoi_vao_(0), voronoi_vbo_(0),
+                   delaunay_vao_(0), delaunay_vbo_(0), voronoi_edge_count_(0), delaunay_edge_count_(0) {
     }
     
     ~VoronoiApp() {
@@ -149,14 +153,42 @@ private:
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
         
-        // Setup VAO and VBO
+        // Setup VAO and VBO for points
         glGenVertexArrays(1, &vao_);
         glGenBuffers(1, &vbo_);
         
         glBindVertexArray(vao_);
         glBindBuffer(GL_ARRAY_BUFFER, vbo_);
         
-        // Position attribute
+        // Position attribute for points
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        
+        // Setup VAO and VBO for Voronoi edges
+        glGenVertexArrays(1, &voronoi_vao_);
+        glGenBuffers(1, &voronoi_vbo_);
+        
+        glBindVertexArray(voronoi_vao_);
+        glBindBuffer(GL_ARRAY_BUFFER, voronoi_vbo_);
+        
+        // Position attribute for Voronoi edges
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        
+        // Setup VAO and VBO for Delaunay edges
+        glGenVertexArrays(1, &delaunay_vao_);
+        glGenBuffers(1, &delaunay_vbo_);
+        
+        glBindVertexArray(delaunay_vao_);
+        glBindBuffer(GL_ARRAY_BUFFER, delaunay_vbo_);
+        
+        // Position attribute for Delaunay edges
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
         
@@ -213,6 +245,8 @@ private:
         
         // Update VBO with new data
         updatePointBuffer();
+        updateVoronoiBuffer();
+        updateDelaunayBuffer();
     }
     
     void updatePointBuffer() {
@@ -226,6 +260,99 @@ private:
         glBindBuffer(GL_ARRAY_BUFFER, vbo_);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+    
+    void updateVoronoiBuffer() {
+        std::vector<float> edge_vertices;
+        
+        if (voronoi_diagram_ && voronoi_diagram_->getNumCells() > 0) {
+            const auto& cells = voronoi_diagram_->getCells();
+            
+            for (const auto& cell : cells) {
+                if (!cell || cell->isInfinite()) continue;
+                
+                const auto& vertices = cell->getVertices();
+                const auto& faces = cell->getFaces();
+                
+                // Generate edges from faces
+                for (const auto& face : faces) {
+                    if (face.size() < 3) continue;
+                    
+                    // Draw edges around each face
+                    for (size_t i = 0; i < face.size(); ++i) {
+                        size_t next_i = (i + 1) % face.size();
+                        
+                        if (static_cast<size_t>(face[i]) < vertices.size() && static_cast<size_t>(face[next_i]) < vertices.size()) {
+                            // Add first vertex of edge
+                            const Point3D& v1 = vertices[face[i]];
+                            edge_vertices.push_back(static_cast<float>(v1.x));
+                            edge_vertices.push_back(static_cast<float>(v1.y));
+                            edge_vertices.push_back(static_cast<float>(v1.z));
+                            
+                            // Add second vertex of edge
+                            const Point3D& v2 = vertices[face[next_i]];
+                            edge_vertices.push_back(static_cast<float>(v2.x));
+                            edge_vertices.push_back(static_cast<float>(v2.y));
+                            edge_vertices.push_back(static_cast<float>(v2.z));
+                        }
+                    }
+                }
+            }
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, voronoi_vbo_);
+        glBufferData(GL_ARRAY_BUFFER, edge_vertices.size() * sizeof(float), 
+                     edge_vertices.empty() ? nullptr : edge_vertices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        // Store edge count for rendering
+        voronoi_edge_count_ = edge_vertices.size() / 3;
+    }
+    
+    void updateDelaunayBuffer() {
+        if (!voronoi_diagram_) return;
+        
+        std::vector<float> edge_vertices;
+        const auto& triangulation = voronoi_diagram_->getDelaunayTriangulation();
+        const auto& tetrahedra = triangulation.getTetrahedra();
+        
+        // Extract edges from each tetrahedron
+        for (const auto& tetra : tetrahedra) {
+            if (!tetra || tetra->isInfinite()) continue;
+            
+            const auto& vertices = tetra->getVertices();
+            
+            // Define the 6 edges of a tetrahedron (vertex pairs)
+            const int edge_pairs[6][2] = {
+                {0, 1}, {0, 2}, {0, 3},  // Edges from vertex 0
+                {1, 2}, {1, 3},          // Edges from vertex 1 (excluding already added)
+                {2, 3}                   // Edge from vertex 2 (excluding already added)
+            };
+            
+            // Add each edge as a pair of vertices
+            for (int i = 0; i < 6; ++i) {
+                const Point3D& v1 = vertices[edge_pairs[i][0]];
+                const Point3D& v2 = vertices[edge_pairs[i][1]];
+                
+                // First vertex
+                edge_vertices.push_back(static_cast<float>(v1.x));
+                edge_vertices.push_back(static_cast<float>(v1.y));
+                edge_vertices.push_back(static_cast<float>(v1.z));
+                
+                // Second vertex
+                edge_vertices.push_back(static_cast<float>(v2.x));
+                edge_vertices.push_back(static_cast<float>(v2.y));
+                edge_vertices.push_back(static_cast<float>(v2.z));
+            }
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, delaunay_vbo_);
+        glBufferData(GL_ARRAY_BUFFER, edge_vertices.size() * sizeof(float), 
+                     edge_vertices.empty() ? nullptr : edge_vertices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        // Store edge count for rendering
+        delaunay_edge_count_ = edge_vertices.size() / 3;
     }
     
     void update() {
@@ -252,6 +379,20 @@ private:
         glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(test_points_.size()));
         glBindVertexArray(0);
         
+        // Draw Voronoi edges
+        if (voronoi_edge_count_ > 0) {
+            glBindVertexArray(voronoi_vao_);
+            glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(voronoi_edge_count_));
+            glBindVertexArray(0);
+        }
+        
+        // Draw Delaunay edges
+        if (delaunay_edge_count_ > 0) {
+            glBindVertexArray(delaunay_vao_);
+            glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(delaunay_edge_count_));
+            glBindVertexArray(0);
+        }
+        
         glUseProgram(0);
     }
     
@@ -263,6 +404,22 @@ private:
         if (vbo_ != 0) {
             glDeleteBuffers(1, &vbo_);
             vbo_ = 0;
+        }
+        if (voronoi_vao_ != 0) {
+            glDeleteVertexArrays(1, &voronoi_vao_);
+            voronoi_vao_ = 0;
+        }
+        if (voronoi_vbo_ != 0) {
+            glDeleteBuffers(1, &voronoi_vbo_);
+            voronoi_vbo_ = 0;
+        }
+        if (delaunay_vao_ != 0) {
+            glDeleteVertexArrays(1, &delaunay_vao_);
+            delaunay_vao_ = 0;
+        }
+        if (delaunay_vbo_ != 0) {
+            glDeleteBuffers(1, &delaunay_vbo_);
+            delaunay_vbo_ = 0;
         }
         if (shader_program_ != 0) {
             glDeleteProgram(shader_program_);

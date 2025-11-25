@@ -49,6 +49,7 @@ GLAPI int GLAD_GL_VERSION_1_0;
 #define GL_TRUE                           1
 #define GL_TRIANGLES                      0x0004
 #define GL_POINTS                         0x0000
+#define GL_LINES                          0x0001
 #define GL_DEPTH_TEST                     0x0B71
 #define GL_LESS                           0x0201
 #define GL_FLOAT                          0x1406
