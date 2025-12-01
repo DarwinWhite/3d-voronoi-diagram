@@ -2,6 +2,8 @@
 #include <vector>
 #include <memory>
 #include <random>
+#include <chrono>
+#include <cmath>
 
 #include "visualization/Window.h"
 #include "visualization/Camera.h"
@@ -45,6 +47,10 @@ public:
                    shader_program_(0), vao_(0), vbo_(0), voronoi_vao_(0), voronoi_vbo_(0),
                    delaunay_vao_(0), delaunay_vbo_(0), voronoi_edge_count_(0), delaunay_edge_count_(0),
                    show_voronoi_(true) {
+    }
+    
+    void setTestPoints(const std::vector<Point3D>& points) {
+        test_points_ = points;
     }
     
     ~VoronoiApp() {
@@ -514,9 +520,157 @@ private:
 
 } // namespace Voronoi3D
 
-int main() {
+void printUsage(const char* program_name) {
+    std::cout << "Usage: " << program_name << " [OPTIONS]" << std::endl;
+    std::cout << std::endl;
+    std::cout << "OPTIONS:" << std::endl;
+    std::cout << "  --points N                 Number of random points to generate (default: 100)" << std::endl;
+    std::cout << "  --distribution DIST        Point distribution type:" << std::endl;
+    std::cout << "                             cube, sphere, gaussian, grid (default: cube)" << std::endl;
+    std::cout << "  --seed N                   Random seed for reproducible point sets" << std::endl;
+    std::cout << "  --no-visualization         Skip OpenGL visualization (validation only)" << std::endl;
+    std::cout << "  --help                     Show this help message" << std::endl;
+    std::cout << std::endl;
+    std::cout << "CONTROLS (in visualization):" << std::endl;
+    std::cout << "  Mouse drag                 Rotate camera" << std::endl;
+    std::cout << "  Mouse wheel                Zoom in/out" << std::endl;
+    std::cout << "  Space                      Toggle between Delaunay/Voronoi view" << std::endl;
+    std::cout << "  Escape                     Exit application" << std::endl;
+    std::cout << std::endl;
+    std::cout << "EXAMPLES:" << std::endl;
+    std::cout << "  # Visualize 500 points in Gaussian cluster" << std::endl;
+    std::cout << "  " << program_name << " --points 500 --distribution gaussian" << std::endl;
+    std::cout << std::endl;
+    std::cout << "  # Validation-only run with 1000 points on sphere" << std::endl;
+    std::cout << "  " << program_name << " --points 1000 --distribution sphere --no-visualization" << std::endl;
+}
+
+std::vector<Voronoi3D::Point3D> generatePoints(size_t count, const std::string& distribution, uint32_t seed) {
+    std::mt19937 rng(seed);
+    std::vector<Voronoi3D::Point3D> points;
+    points.reserve(count);
+    
+    if (distribution == "cube") {
+        std::uniform_real_distribution<double> dist(-1.0, 1.0);
+        for (size_t i = 0; i < count; ++i) {
+            points.emplace_back(dist(rng), dist(rng), dist(rng));
+        }
+    } else if (distribution == "sphere") {
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+        for (size_t i = 0; i < count; ++i) {
+            double x, y, z, length_sq;
+            do {
+                x = 2.0 * dist(rng) - 1.0;
+                y = 2.0 * dist(rng) - 1.0;
+                z = 2.0 * dist(rng) - 1.0;
+                length_sq = x * x + y * y + z * z;
+            } while (length_sq > 1.0 || length_sq == 0.0);
+            
+            double length = std::sqrt(length_sq);
+            points.emplace_back(x / length, y / length, z / length);
+        }
+    } else if (distribution == "gaussian") {
+        std::normal_distribution<double> dist(0.0, 0.3);
+        for (size_t i = 0; i < count; ++i) {
+            points.emplace_back(dist(rng), dist(rng), dist(rng));
+        }
+    } else if (distribution == "grid") {
+        std::uniform_real_distribution<double> noise_dist(-0.1, 0.1);
+        int grid_size = static_cast<int>(std::ceil(std::cbrt(count)));
+        double spacing = 2.0 / (grid_size - 1);
+        
+        for (int i = 0; i < grid_size && points.size() < count; ++i) {
+            for (int j = 0; j < grid_size && points.size() < count; ++j) {
+                for (int k = 0; k < grid_size && points.size() < count; ++k) {
+                    double x = -1.0 + i * spacing + noise_dist(rng);
+                    double y = -1.0 + j * spacing + noise_dist(rng);
+                    double z = -1.0 + k * spacing + noise_dist(rng);
+                    points.emplace_back(x, y, z);
+                }
+            }
+        }
+        points.resize(count);
+    } else {
+        std::cerr << "Unknown distribution: " << distribution << std::endl;
+        std::cerr << "Valid options: cube, sphere, gaussian, grid" << std::endl;
+        exit(1);
+    }
+    
+    return points;
+}
+
+int main(int argc, char* argv[]) {
+    // Default parameters
+    size_t num_points = 100;
+    std::string distribution = "cube";
+    uint32_t seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    bool no_visualization = false;
+    
+    // Parse command line arguments
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        if (arg == "--help") {
+            printUsage(argv[0]);
+            return 0;
+        } else if (arg == "--points" && i + 1 < argc) {
+            num_points = std::stoul(argv[++i]);
+        } else if (arg == "--distribution" && i + 1 < argc) {
+            distribution = argv[++i];
+        } else if (arg == "--seed" && i + 1 < argc) {
+            seed = std::stoul(argv[++i]);
+        } else if (arg == "--no-visualization") {
+            no_visualization = true;
+        } else {
+            std::cerr << "Unknown argument: " << arg << std::endl;
+            printUsage(argv[0]);
+            return 1;
+        }
+    }
+    
+    // Validate parameters
+    if (num_points == 0) {
+        std::cerr << "Number of points must be greater than 0" << std::endl;
+        return 1;
+    }
+    
     try {
+        std::cout << "=== 3D Voronoi Diagram Visualization ===" << std::endl;
+        std::cout << "Points: " << num_points << std::endl;
+        std::cout << "Distribution: " << distribution << std::endl;
+        std::cout << "Seed: " << seed << std::endl;
+        std::cout << std::endl;
+        
+        // Generate test points
+        auto test_points = generatePoints(num_points, distribution, seed);
+        
+        if (no_visualization) {
+            // Validation-only mode
+            std::cout << "Running validation without visualization..." << std::endl;
+            
+            auto start_time = std::chrono::high_resolution_clock::now();
+            
+            Voronoi3D::DelaunayTriangulation delaunay;
+            delaunay.initialize(test_points);
+            
+            Voronoi3D::VoronoiDiagram voronoi;
+            voronoi.compute(test_points);
+            
+            auto end_time = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double, std::milli>(end_time - start_time).count();
+            
+            std::cout << "Construction completed in " << duration << " ms" << std::endl;
+            std::cout << "Tetrahedra: " << delaunay.getNumTetrahedra() << std::endl;
+            std::cout << "Voronoi cells: " << voronoi.getNumCells() << std::endl;
+            std::cout << "Tetrahedra per point: " << 
+                         static_cast<double>(delaunay.getNumTetrahedra()) / num_points << std::endl;
+            
+            return 0;
+        }
+        
+        // Visualization mode
         Voronoi3D::VoronoiApp app;
+        app.setTestPoints(test_points);
         
         if (!app.initialize()) {
             std::cerr << "Failed to initialize application" << std::endl;

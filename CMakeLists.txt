@@ -55,8 +55,8 @@ file(GLOB_RECURSE ALGORITHM_SOURCES "src/algorithms/*.cpp")
 file(GLOB_RECURSE VISUALIZATION_SOURCES "src/visualization/*.cpp")
 file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
-set(SOURCES
-    src/main.cpp
+# Create library for shared code
+set(LIBRARY_SOURCES
     ${GEOMETRY_SOURCES}
     ${ALGORITHM_SOURCES}
     ${VISUALIZATION_SOURCES}
@@ -66,15 +66,38 @@ set(SOURCES
 # Header files
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
-# Create executable
-add_executable(voronoi3d ${SOURCES} ${HEADERS})
+# Create static library for shared functionality
+add_library(voronoi3d_core STATIC ${LIBRARY_SOURCES} ${HEADERS})
+target_include_directories(voronoi3d_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+)
 
-# Link libraries
-target_link_libraries(voronoi3d 
+# Create main visualization executable
+add_executable(voronoi3d src/main.cpp)
+target_link_libraries(voronoi3d voronoi3d_core)
+
+# Create benchmark executable
+add_executable(voronoi3d_benchmark src/benchmark_main.cpp)
+target_link_libraries(voronoi3d_benchmark voronoi3d_core)
+
+# Link libraries for shared library
+target_link_libraries(voronoi3d_core 
     OpenGL::GL
     glfw
     glad
     ${CMAKE_DL_LIBS}
+)
+
+# Link libraries for visualization executable
+target_link_libraries(voronoi3d 
+    voronoi3d_core
+)
+
+# Link libraries for benchmark executable (no OpenGL needed)
+target_link_libraries(voronoi3d_benchmark
+    voronoi3d_core
 )
 
 # GLM is header-only, but we need to ensure it's found
@@ -134,7 +157,7 @@ if(BUILD_DOCS)
 endif()
 
 # Install rules
-install(TARGETS voronoi3d DESTINATION bin)
+install(TARGETS voronoi3d voronoi3d_benchmark DESTINATION bin)
 install(DIRECTORY shaders/ DESTINATION share/voronoi3d/shaders)
 
 # CPack configuration

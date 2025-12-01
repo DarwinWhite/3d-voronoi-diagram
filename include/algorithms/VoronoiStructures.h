@@ -198,7 +198,7 @@ private:
     void createBoundingTetrahedron();
     void removeBoundingTetrahedron();
 
-    // Bowyer-Watson algorithm implementation (to be implemented in Phase 3)
+    // Bowyer-Watson algorithm implementation
     void insertPointBowyerWatson(const Point3D& point);
     std::vector<TetrahedronPtr> findConflictingTetrahedra(const Point3D& point) const;
     void removeConflictingTetrahedra(const std::vector<TetrahedronPtr>& conflicting);
@@ -268,7 +268,7 @@ public:
     std::string getStatistics() const;
 
 private:
-    // Dual extraction from Delaunay triangulation (to be implemented in Phase 3)
+    // Dual extraction from Delaunay triangulation
     void extractVoronoiDiagram();
     void computeVoronoiVertices();
     void computeVoronoiEdges();
